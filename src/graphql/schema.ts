@@ -13,6 +13,8 @@ const typeDefs = gql`
         tasks: [Task!]!
     }
 
+   
+    
     type Query {
         getAllTasks: TaskData!
         getTaskById(id: ID!): Task

@@ -1,74 +1,123 @@
 import Task from '../models/taskModel';
 
 const resolvers = {
-    Query: {
-        // get all tasks
-      getAllTasks: async () => {
-        try {
-            const tasks = await Task.find({})
-            
-            return { 
-                length: tasks.length,   
-                tasks: tasks,
-            }
+  
+  // ensure id is string
+  Task: {
+    id: (task: any) => task._id.toString() 
+  },
 
-        } catch (e) {
+  Query: {
+    // get all tasks
+    getAllTasks: async () => {
+      try {
+        const tasks = await Task.find({})
 
-            throw new Error (e.message || `Failed to fetch the tasks`)
+        return {
+          length: tasks.length,
+          tasks: tasks,
         }
-      },
 
-        // get single task
+      } catch (e) {
 
-      getTaskById: async (_: any, { id }: { id: string }) => {
-        try {
-
-            const task = await Task.findById(id)
-
-            if (!task){ throw new Error (`task with id: ${id} not found`) }
-
-            return task ;
-
-        } catch (e) {
-           
-            throw new Error (e.message || `Failed to fetch the task id: ${id}`)
-
-        }
-      },
+        throw new Error(e.message || `Failed to fetch the tasks`)
+      }
     },
-    Mutation: {
 
-      createTask: async (_: any, { name, description, completed = false}: { name: string, description?: string, completed: boolean }) => {
-        
-        try {
+    // get single task
 
-            const newTask = new Task ({
-                name,
-                description,
-                completed: false
+    getTaskById: async (_: any, { id }: { id: string }) => {
+      try {
 
-            });
+        const task = await Task.findById(id)
 
-            const savedTask = await newTask.save();
+        if (!task) { throw new Error(`task with id: ${id} not found`) }
 
-            return savedTask
+        return task;
 
-        } catch (e) {
+      } catch (e) {
 
-            throw new Error (`Failed to save task`);
+        throw new Error(e.message || `Failed to fetch the task id: ${id}`)
 
+      }
+    },
+  },
+  Mutation: {
+
+    createTask: async (_: any, { name, description, completed = false }: { name: string, description?: string, completed: boolean }) => {
+
+      try {
+
+        const newTask = new Task({
+          name,
+          description,
+          completed: false
+
+        });
+
+        const savedTask = await newTask.save();
+
+        return savedTask
+
+      } catch (e) {
+
+        throw new Error(`Failed to save task`);
+
+      }
+    },
+
+    updateTask: async (
+      _: any,
+      { id, name, description, completed }:
+        { id: string, name?: string, description?: string, completed?: boolean }) => {
+
+      try {
+
+        const updateTask = await Task.findByIdAndUpdate(
+          id,
+          {
+            $set: {
+              name,
+              description,
+              completed
+            }
+          },
+          { new: true, runValidators: true }
+        );
+
+        if (!updateTask) { throw new Error(`Task with id: ${id} not found`) }
+
+        return {
+         
+          ...updateTask.toObject()
+          
         }
-      },
 
-      updateTask: async (_: any, { id, name, description, completed }: { id: string, name?: string, description?: string, completed?: boolean }) => {
-        // Logic to update a task
-      },
-      deleteTask: async (_: any, { id }: { id: string }) => {
-        
+      } catch (e) {
 
-      },
-    }
-  };
-  
-  export default resolvers;
-  
+        throw new Error(`Failed to update task: ${e.message}`)
+
+      }
+
+    },
+
+    deleteTask: async (_: any, { id }: { id: string }) => {
+      try {
+
+        const deletedtask = await Task.findByIdAndDelete(id)
+
+        if (!deletedtask){ throw new Error(` Task with id: ${id} not found `)}
+
+        return deletedtask
+
+      } catch (e) {
+
+        throw new Error(` Failed to delete task: ${e.message} `)
+
+      }
+
+    },
+  }
+};
+
+export default resolvers;
