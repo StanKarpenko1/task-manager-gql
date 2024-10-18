@@ -1,10 +1,12 @@
+import { Types } from 'mongoose';
 import Task from '../models/taskModel';
+import { GraphQLError } from 'graphql';
 
 const resolvers = {
-  
+
   // ensure id is string
   Task: {
-    id: (task: any) => task._id.toString() 
+    id: (task: any) => task._id.toString()
   },
 
   Query: {
@@ -20,33 +22,57 @@ const resolvers = {
 
       } catch (e) {
 
-        throw new Error(e.message || `Failed to fetch the tasks`)
+        throw new GraphQLError(e.message || 'Failed to fetch tasks'); 
+
       }
     },
 
     // get single task
-
-    getTaskById: async (_: any, { id }: { id: string }) => {
+    getTaskById: async (_: any, { id }  : { id: string }) => {
       try {
+
+        if (!Types.ObjectId.isValid(id)) {
+          return {
+            __typename: 'TaskNotFound',
+            message: `Invalid ID format.`
+          };
+        }
 
         const task = await Task.findById(id)
 
-        if (!task) { throw new Error(`task with id: ${id} not found`) }
+        if (!task) {
+          return {
+            __typename: 'TaskNotFound',
+            message: `Task with id: ${id} not found`
+          };
+        }
 
-        return task;
+        return {
+          __typename: 'Task',
+          ...task.toObject()
+        };
 
-      } catch (e) {
+      } catch (e: any) {
 
-        throw new Error(e.message || `Failed to fetch the task id: ${id}`)
+        throw new GraphQLError(e.message || `Failed to fetch task with ID: `);
 
       }
     },
   },
+
   Mutation: {
 
     createTask: async (_: any, { name, description, completed = false }: { name: string, description?: string, completed: boolean }) => {
 
       try {
+
+        const existingTask = await Task.findOne({ name });
+
+        if (existingTask) {
+
+          throw new GraphQLError(`Task with the name "${name}" already exists. `);
+
+        }
 
         const newTask = new Task({
           name,
@@ -55,13 +81,14 @@ const resolvers = {
 
         });
 
+        
         const savedTask = await newTask.save();
 
         return savedTask
 
       } catch (e) {
 
-        throw new Error(`Failed to save task`);
+        throw new GraphQLError(e.message || `Failed to fetch task with ID: `);
 
       }
     },
@@ -85,17 +112,24 @@ const resolvers = {
           { new: true, runValidators: true }
         );
 
-        if (!updateTask) { throw new Error(`Task with id: ${id} not found`) }
+        if (!updateTask) { 
+          
+          return {
+            __typename: 'TaskNotFound',
+            message: `Task with id: ${id} not found`
+
+          }
+        }
 
         return {
-         
+          __typename: 'Task',
           ...updateTask.toObject()
-          
+
         }
 
       } catch (e) {
 
-        throw new Error(`Failed to update task: ${e.message}`)
+        throw new GraphQLError(e.message || `Failed to fetch task with ID: `);
 
       }
 
@@ -106,9 +140,18 @@ const resolvers = {
 
         const deletedtask = await Task.findByIdAndDelete(id)
 
-        if (!deletedtask){ throw new Error(` Task with id: ${id} not found `)}
+        if (!deletedtask) { 
+          return {
+            __typename: 'TaskNotFound',
+            message: `Task with id: ${id} not found`
+          }
+        }
 
-        return deletedtask
+        return {
+          __typename: 'Task',
+          ...deletedtask.toObject()
+
+        }
 
       } catch (e) {
 

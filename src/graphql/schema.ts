@@ -8,22 +8,26 @@ const typeDefs = gql`
         completed: Boolean!
     }
 
+    type TaskNotFound {
+        message: String!
+    }
+
+    union TaskResult = Task | TaskNotFound
+
     type TaskData {
         length: Int!,
         tasks: [Task!]!
     }
 
-   
-    
     type Query {
         getAllTasks: TaskData!
-        getTaskById(id: ID!): Task
+        getTaskById(id: ID!): TaskResult!
     }
 
     type Mutation {
         createTask( name: String!, description: String, completed: Boolean!): Task
-        updateTask( id: ID!, name: String, description: String, completed: Boolean ): Task
-        deleteTask(id: ID!): Task
+        updateTask( id: ID!, name: String, description: String, completed: Boolean ): TaskResult!
+        deleteTask(id: ID!): TaskResult!
     }
 
 `
